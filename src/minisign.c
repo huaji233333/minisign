@@ -45,32 +45,33 @@ usage(void)
 #endif
          "\n"
 #ifndef VERIFY_ONLY
-         "-G                generate a new key pair\n"
-         "-S                sign files\n"
+         "-G                生成新的密钥对\n"
+         "-S                签名文件\n"
 #endif
-         "-V                verify that a signature is valid for a given file\n"
-         "-m <file>         file to sign/verify\n"
-         "-o                combined with -V, output the file content after verification\n"
+         "-V                验证签名对给定文件有效\n"
+         "-m <file>         要签名/验证的文件\n"
+         "-o                与-V组合，验证后输出文件内容\n"
 #ifndef VERIFY_ONLY
-         "-H                combined with -S, pre-hash in order to sign large files\n"
+         "-H                与-S结合使用，先进行散列以对大型文件进行签名\n"
 #endif
-         "-p <pubkeyfile>   public key file (default: ./minisign.pub)\n"
-         "-P <pubkey>       public key, as a base64 string\n"
+         "-p <pubkeyfile>   公钥文件（默认：./minisign.pub）\n"
+         "-P <pubkey>       公钥，base64字符串\n"
 #ifndef VERIFY_ONLY
-         "-s <seckey>       secret key file (default: ~/.minisign/minisign.key)\n"
+         "-s <seckey>       密钥文件（默认： ~/.minisign/minisign.key）\n"
 #endif
-         "-x <sigfile>      signature file (default: <file>.minisig)\n"
+         "-x <sigfile>      签名文件 (默认： <file>.minisig)\n"
 #ifndef VERIFY_ONLY
-         "-c <comment>      add a one-line untrusted comment\n"
-         "-t <comment>      add a one-line trusted comment\n"
+         "-c <comment>      添加单行不受信任的注释\n"
+         "-t <comment>      添加单行可信注释\n"
 #endif
-         "-q                quiet mode, suppress output\n"
-         "-Q                pretty quiet mode, only print the trusted comment\n"
+         "-q                安静模式，禁止输出\n"
+         "-Q                非常安静模式，仅打印受信任的注释\n"
 #ifndef VERIFY_ONLY
-         "-R                recreate a public key file from a secret key file\n"
+         "-R                从秘密密钥文件重新创建公共密钥文件\n"
 #endif
-         "-f                force. Combined with -G, overwrite a previous key pair\n"
-         "-v                display version number\n"
+         "-f                强制。与-G结合使用，覆盖先前的密钥对\n"
+         "-v                显示版本号\n"
+         "zh-cn由神必人士翻译 2020.10.03\n"
         );
     exit(2);
 }
@@ -119,7 +120,7 @@ message_load(size_t *message_len, const char *message_file, int hashed)
     }
     assert(hashed == 0);
     if (message_len_ > (off_t) 1L << 30) {
-        exit_msg("Data has to be smaller than 1 GB. Or use the -H option.");
+        exit_msg("数据必须小于1 GB。或使用-H选项。");
     }
     if ((uintmax_t) message_len_ > (uintmax_t) SIZE_MAX ||
         message_len_ < (off_t) 0) {
@@ -129,7 +130,7 @@ message_load(size_t *message_len, const char *message_file, int hashed)
     rewind(fp);
     if (*message_len > 0U &&
         fread(message, *message_len, (size_t) 1U, fp) != 1U) {
-        exit_msg("Error while loading the message");
+        exit_msg("加载消息时出错");
     }
     xfclose(fp);
 
@@ -178,24 +179,24 @@ sig_load(const char *sig_file, unsigned char global_sig[crypto_sign_BYTES],
         exit_err(sig_file);
     }
     if (fgets(comment, (int) sizeof comment, fp) == NULL) {
-        exit_msg("Error while reading the signature file");
+        exit_msg("读取签名文件时出错");
     }
     if (strncmp(comment, COMMENT_PREFIX, (sizeof COMMENT_PREFIX) - 1U) != 0) {
-        exit_msg("Untrusted signature comment should start with "
+        exit_msg("不受信任的签名开头应该是 "
                  "\"" COMMENT_PREFIX "\"");
     }
     sig_s_size = B64_MAX_LEN_FROM_BIN_LEN(sizeof *sig_struct) + 2U;
     sig_s = xmalloc(sig_s_size);
     if (fgets(sig_s, (int) sig_s_size, fp) == NULL) {
-        exit_msg("Error while reading the signature file");
+        exit_msg("读取签名文件时出错");
     }
     trim(sig_s);
     if (fgets(trusted_comment, (int) trusted_comment_maxlen, fp) == NULL) {
-        exit_msg("Trusted comment not present");
+        exit_msg("不存在受信任的内容");
     }
     if (strncmp(trusted_comment, TRUSTED_COMMENT_PREFIX,
                 (sizeof TRUSTED_COMMENT_PREFIX) - 1U) != 0) {
-        exit_msg("Trusted signature comment should start with "
+        exit_msg("受信任的签名开头应该是 "
                  "\"" TRUSTED_COMMENT_PREFIX "\"");
     }
     memmove(trusted_comment,
@@ -205,7 +206,7 @@ sig_load(const char *sig_file, unsigned char global_sig[crypto_sign_BYTES],
     global_sig_s_size = B64_MAX_LEN_FROM_BIN_LEN(crypto_sign_BYTES) + 2U;
     global_sig_s = xmalloc(global_sig_s_size);
     if (fgets(global_sig_s, (int) global_sig_s_size, fp) == NULL) {
-        exit_msg("Error while reading the signature file");
+        exit_msg("读取签名文件时出错");
     }
     trim(global_sig_s);
     xfclose(fp);
@@ -215,7 +216,7 @@ sig_load(const char *sig_file, unsigned char global_sig[crypto_sign_BYTES],
                    sizeof *sig_struct, strlen(sig_s),
                    &sig_struct_len) == NULL ||
         sig_struct_len != sizeof *sig_struct) {
-        exit_msg("base64 conversion failed - was an actual signature given?");
+        exit_msg("base64转换失败-是否提供了实际签名？");
     }
     free(sig_s);
     if (memcmp(sig_struct->sig_alg, SIGALG, sizeof sig_struct->sig_alg) == 0) {
@@ -224,12 +225,12 @@ sig_load(const char *sig_file, unsigned char global_sig[crypto_sign_BYTES],
                       sizeof sig_struct->sig_alg) == 0) {
         *hashed = 1;
     } else {
-        exit_msg("Unsupported signature algorithm");
+        exit_msg("不支持的签名算法");
     }
     if (b64_to_bin(global_sig, global_sig_s, crypto_sign_BYTES,
                    strlen(global_sig_s), &global_sig_len) == NULL ||
         global_sig_len != crypto_sign_BYTES) {
-        exit_msg("base64 conversion failed - was an actual signature given?");
+        exit_msg("base64转换失败-是否提供了实际签名？");
     }
     free(global_sig_s);
 
@@ -247,11 +248,11 @@ pubkey_load_string(const char *pubkey_s)
                    sizeof *pubkey_struct, strlen(pubkey_s),
                    &pubkey_struct_len) == NULL ||
         pubkey_struct_len != sizeof *pubkey_struct) {
-        exit_msg("base64 conversion failed - was an actual public key given?");
+        exit_msg("base64转换失败-是否提供了实际的公钥？");
     }
     if (memcmp(pubkey_struct->sig_alg, SIGALG,
                sizeof pubkey_struct->sig_alg) != 0) {
-        exit_msg("Unsupported signature algorithm");
+        exit_msg("不支持的签名算法");
     }
     return pubkey_struct;
 }
@@ -269,12 +270,12 @@ pubkey_load_file(const char *pk_file)
         exit_err(pk_file);
     }
     if (fgets(pk_comment, (int) sizeof pk_comment, fp) == NULL) {
-        exit_msg("Error while loading the public key file");
+        exit_msg("加载公钥文件时出错");
     }
     pubkey_s_size = B64_MAX_LEN_FROM_BIN_LEN(sizeof *pubkey_struct) + 2U;
     pubkey_s = xmalloc(pubkey_s_size);
     if (fgets(pubkey_s, (int) pubkey_s_size, fp) == NULL) {
-        exit_msg("Error while loading the public key file");
+        exit_msg("加载公钥文件时出错");
     }
     trim(pubkey_s);
     xfclose(fp);
@@ -288,14 +289,14 @@ static PubkeyStruct *
 pubkey_load(const char *pk_file, const char *pubkey_s)
 {
     if (pk_file != NULL && pubkey_s != NULL) {
-        exit_msg("A public key cannot be provided both inline and as a file");
+        exit_msg("不能以内联和文件形式提供公钥");
     }
     if (pubkey_s != NULL) {
         return pubkey_load_string(pubkey_s);
     } else if (pk_file != NULL) {
         return pubkey_load_file(pk_file);
     }
-    exit_msg("A public key is required");
+    exit_msg("需要公钥");
 }
 
 static void
@@ -332,14 +333,14 @@ seckey_load(const char *sk_file)
         exit_err(sk_file);
     }
     if (fgets(sk_comment, (int) sizeof sk_comment, fp) == NULL) {
-        exit_msg("Error while loading the secret key file");
+        exit_msg("加载私钥文件时出错");
     }
     sodium_memzero(sk_comment, sizeof sk_comment);
     seckey_s_size = B64_MAX_LEN_FROM_BIN_LEN(sizeof *seckey_struct) + 2U;
     seckey_s = xsodium_malloc(seckey_s_size);
     seckey_struct = xsodium_malloc(sizeof *seckey_struct);
     if (fgets(seckey_s, (int) seckey_s_size, fp) == NULL) {
-        exit_msg("Error while loading the secret key file");
+        exit_msg("加载私钥文件时出错");
     }
     trim(seckey_s);
     xfclose(fp);
@@ -347,25 +348,25 @@ seckey_load(const char *sk_file)
                    sizeof *seckey_struct, strlen(seckey_s),
                    &seckey_struct_len) == NULL ||
         seckey_struct_len != sizeof *seckey_struct) {
-        exit_msg("base64 conversion failed - was an actual secret key given?");
+        exit_msg("base64转换失败-是否提供了实际的密钥？");
     }
     sodium_free(seckey_s);
     if (memcmp(seckey_struct->sig_alg, SIGALG,
                sizeof seckey_struct->sig_alg) != 0) {
-        exit_msg("Unsupported signature algorithm");
+        exit_msg("不支持的签名算法");
     }
     if (memcmp(seckey_struct->kdf_alg, KDFALG,
                sizeof seckey_struct->kdf_alg) != 0) {
-        exit_msg("Unsupported key derivation function");
+        exit_msg("不支持的密钥派生功能");
     }
     if (memcmp(seckey_struct->chk_alg, CHKALG,
                sizeof seckey_struct->chk_alg) != 0) {
-        exit_msg("Unsupported checksum function");
+        exit_msg("不支持的校验和功能");
     }
     if (get_password(pwd, PASSWORDMAXBYTES, "Password: ") != 0) {
         exit_msg("get_password()");
     }
-    printf("Deriving a key from the password and decrypting the secret key... ");
+    printf("从密码派生密钥并解密秘密密钥...");
     fflush(stdout);
     stream = xsodium_malloc(sizeof seckey_struct->keynum_sk);
     if (crypto_pwhash_scryptsalsa208sha256
@@ -373,7 +374,7 @@ seckey_load(const char *sk_file)
          seckey_struct->kdf_salt,
          le64_load(seckey_struct->kdf_opslimit_le),
          le64_load(seckey_struct->kdf_memlimit_le)) != 0) {
-        exit_err("Unable to complete key derivation - This probably means out of memory");
+        exit_err("无法完成密钥派生-这可能意味着内存不足");
     }
     sodium_free(pwd);
     xor_buf((unsigned char *) (void *) &seckey_struct->keynum_sk, stream,
@@ -382,7 +383,7 @@ seckey_load(const char *sk_file)
     puts("done\n");
     seckey_chk(chk, seckey_struct);
     if (memcmp(chk, seckey_struct->keynum_sk.chk, sizeof chk) != 0) {
-        exit_msg("Wrong password for that key");
+        exit_msg("该密钥的密码错误");
     }
     sodium_memzero(chk, sizeof chk);
 
@@ -421,7 +422,7 @@ verify(PubkeyStruct *pubkey_struct, const char *message_file,
     if (crypto_sign_verify_detached(sig_struct->sig, message, message_len,
                                     pubkey_struct->keynum_pk.pk) != 0) {
         if (quiet == 0) {
-            fprintf(stderr, "Signature verification failed\n");
+            fprintf(stderr, "签名认证失败\n");
         }
         exit(1);
     }
@@ -437,7 +438,7 @@ verify(PubkeyStruct *pubkey_struct, const char *message_file,
                                     (sizeof sig_struct->sig) + trusted_comment_len,
                                     pubkey_struct->keynum_pk.pk) != 0) {
         if (quiet == 0) {
-            fprintf(stderr, "Comment signature verification failed\n");
+            fprintf(stderr, "评论签名验证失败\n");
         }
         exit(1);
     }
@@ -705,9 +706,9 @@ generate(const char *pk_file, const char *sk_file, const char *comment,
 
     write_pk_file(pk_file, pubkey_struct);
 
-    printf("The secret key was saved as %s - Keep it secret!\n", sk_file);
-    printf("The public key was saved as %s - That one can be public.\n\n", pk_file);
-    puts("Files signed using this key pair can be verified with the following command:\n");
+    printf("私钥保存为 %s - Keep it secret!\n", sk_file);
+    printf("公钥保存为 %s - That one can be public.\n\n", pk_file);
+    puts("可以使用以下命令来验证 使用此密钥对 签名 的文件：\n");
     printf("minisign -Vm <file> -P ");
     xfput_b64(stdout, (unsigned char *) (void *) pubkey_struct,
               sizeof *pubkey_struct);
@@ -880,11 +881,12 @@ main(int argc, char **argv)
             break;
         case 'v':
             puts(VERSION_STRING);
+   
             return 0;
         }
     }
     if (sodium_init() != 0) {
-        fprintf(stderr, "Unable to initialize the Sodium library\n");
+        fprintf(stderr, "无法初始化 Sodium library\n");
         return 2;
     }
     switch (action) {
